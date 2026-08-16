@@ -334,41 +334,50 @@
             font-weight: 600;
         }
 
-        #settingsModal {
+        /* CUSTOM MODAL POPUPS STYLING */
+        .custom-modal {
             display: none;
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(7, 13, 27, 0.95);
-            z-index: 100;
-            padding: 20px;
-            overflow-y: auto;
-        }
-
-        .settings-header {
-            display: flex;
-            justify-content: space-between;
+            background: rgba(7, 13, 27, 0.9);
+            z-index: 200;
             align-items: center;
-            margin-bottom: 25px;
+            justify-content: center;
+            padding: 20px;
         }
 
-        .settings-group {
+        .modal-card {
             background: #111827;
-            padding: 15px;
-            border-radius: 14px;
-            margin-bottom: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
+            width: 100%;
+            max-width: 400px;
+            padding: 24px;
+            border-radius: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+            animation: fadeIn 0.2s ease-in-out;
         }
 
-        .settings-group h4 {
-            font-size: 0.9rem;
-            color: #38bdf8;
-            margin-bottom: 10px;
+        @keyframes fadeIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
 
-        .settings-group p {
+        .modal-card h3 {
+            font-size: 1.15rem;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .modal-card p {
             font-size: 0.8rem;
             color: #94a3b8;
-            margin-bottom: 8px;
+            margin-bottom: 18px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
         }
     </style>
 </head>
@@ -406,7 +415,7 @@
                 <p id="userLoggedIdentity">Logged In</p>
             </div>
             <div class="header-actions">
-                <div id="adminGear" class="icon-btn" onclick="openSettings()" title="Admin Settings" style="display: none;"><i class="fa-solid fa-gear"></i></div>
+                <div class="icon-btn" onclick="openSettingsModal()" title="Platform Settings"><i class="fa-solid fa-gear"></i></div>
                 <a href="https://wa.me/2349122293418?text=Hello%20Apex%20Plug%20Support,%20I%20need%20assistance." target="_blank" class="icon-btn" title="Customer Care"><i class="fa-solid fa-headset"></i></a>
                 <div class="icon-btn" onclick="logoutUser()" title="Logout" style="color: #f87171; border-color: rgba(248,113,113,0.3);"><i class="fa-solid fa-right-from-bracket"></i></div>
             </div>
@@ -417,26 +426,26 @@
             <h2 id="walletBalance">₦0.00</h2>
             <div class="wallet-actions">
                 <button class="btn deposit-btn" onclick="openDepositModal()"><i class="fa-solid fa-plus"></i> Deposit</button>
-                <button class="btn withdraw-btn" onclick="openWithdraw()"><i class="fa-solid fa-arrow-up"></i> Withdraw</button>
+                <button class="btn withdraw-btn" onclick="openWithdrawModal()"><i class="fa-solid fa-arrow-up"></i> Withdraw</button>
             </div>
         </section>
 
         <section>
             <h3>Quick Services</h3>
             <div class="service-grid">
-                <div class="service-card" onclick="buyData()">
+                <div class="service-card" onclick="openDataModal()">
                     <i class="fa-solid fa-wifi"></i>
                     <span>Buy Data</span>
                 </div>
-                <div class="service-card" onclick="buyAirtime()">
+                <div class="service-card" onclick="openAirtimeModal()">
                     <i class="fa-solid fa-phone"></i>
                     <span>Airtime</span>
                 </div>
-                <div class="service-card" onclick="checkBalanceAndAlert('electricity')">
+                <div class="service-card" onclick="checkBalanceAndAlert()">
                     <i class="fa-solid fa-lightbulb"></i>
                     <span>Electricity</span>
                 </div>
-                <div class="service-card" onclick="checkBalanceAndAlert('cable')">
+                <div class="service-card" onclick="checkBalanceAndAlert()">
                     <i class="fa-solid fa-tv"></i>
                     <span>Subscriptions</span>
                 </div>
@@ -501,23 +510,181 @@
         </section>
     </div>
 
-    <!-- ADMIN SETTINGS MODAL (Owner Only) -->
-    <div id="settingsModal">
-        <div class="settings-header">
-            <h3>Admin Platform Settings</h3>
-            <div class="icon-btn" onclick="closeSettings()"><i class="fa-solid fa-xmark"></i></div>
+    <!-- CUSTOM DEPOSIT MODAL -->
+    <div id="depositModal" class="custom-modal">
+        <div class="modal-card">
+            <h3>Fund Your Wallet</h3>
+            <p>Select your preferred funding method below:</p>
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
+                <button class="btn deposit-btn" onclick="selectDepositMethod('bank')" style="justify-content: flex-start; padding: 14px;"><i class="fa-solid fa-building-columns"></i> Bank Transfer (OPay Manual)</button>
+                <button class="btn withdraw-btn" onclick="selectDepositMethod('card')" style="justify-content: flex-start; padding: 14px; background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.2);"><i class="fa-solid fa-credit-card"></i> Link ATM Card (Instant)</button>
+            </div>
+            <button class="btn withdraw-btn" onclick="closeAllModals()" style="width: 100%; background: transparent; color: #94a3b8;">Cancel</button>
         </div>
+    </div>
 
-        <div class="settings-group">
-            <h4>Brand Customization</h4>
-            <p>Change platform display name:</p>
-            <button class="btn deposit-btn" onclick="updateProfileName()" style="padding: 8px;">Edit Brand Name</button>
+    <!-- MANUAL BANK DEPOSIT SUB-MODAL -->
+    <div id="bankDepositModal" class="custom-modal">
+        <div class="modal-card">
+            <h3>Bank Transfer Deposit</h3>
+            <p>Transfer to OPay | Acct: <strong>9014759505</strong> | Name: <strong>Tsebee Aondowase Dominic</strong></p>
+            <div class="form-group">
+                <label>Enter Amount Transferred (₦)</label>
+                <input type="number" id="bankDepositAmount" class="form-input" placeholder="e.g. 5000">
+            </div>
+            <div class="modal-actions">
+                <button class="btn withdraw-btn" onclick="closeAllModals()" style="background: transparent; color: #94a3b8;">Back</button>
+                <button class="btn deposit-btn" onclick="confirmBankDeposit()">I Have Sent Money</button>
+            </div>
         </div>
+    </div>
 
-        <div class="settings-group">
-            <h4>System Security</h4>
-            <p>Admin privileges active for owner account.</p>
-            <button class="btn withdraw-btn" onclick="alert('System security status: Locked & Secure.')" style="padding: 8px; background: rgba(255,255,255,0.1);">Security Logs</button>
+    <!-- ATM CARD DEPOSIT SUB-MODAL -->
+    <div id="cardDepositModal" class="custom-modal">
+        <div class="modal-card">
+            <h3>Instant Card Deposit</h3>
+            <p>Enter your card credentials securely:</p>
+            <div class="form-group">
+                <label>Card Number</label>
+                <input type="text" id="cardNum" class="form-input" maxlength="16" placeholder="4123 4567 8901 2345">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <div class="form-group" style="flex:1;">
+                    <label>Expiry (MM/YY)</label>
+                    <input type="text" id="cardExp" class="form-input" maxlength="5" placeholder="MM/YY">
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>CVV</label>
+                    <input type="password" id="cardCvv" class="form-input" maxlength="3" placeholder="123">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Amount (₦)</label>
+                <input type="number" id="cardAmount" class="form-input" placeholder="e.g. 2000">
+            </div>
+            <div class="modal-actions">
+                <button class="btn withdraw-btn" onclick="closeAllModals()" style="background: transparent; color: #94a3b8;">Cancel</button>
+                <button class="btn deposit-btn" onclick="confirmCardDeposit()">Pay Now</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- WITHDRAWAL MODAL -->
+    <div id="withdrawModal" class="custom-modal">
+        <div class="modal-card">
+            <h3>Withdraw Funds</h3>
+            <p>Enter withdrawal details and your transaction PIN:</p>
+            <div class="form-group">
+                <label>Amount to Withdraw (₦)</label>
+                <input type="number" id="withdrawAmount" class="form-input" placeholder="e.g. 1000">
+            </div>
+            <div class="form-group">
+                <label>4-Digit Transaction PIN</label>
+                <input type="password" id="withdrawPin" class="form-input" maxlength="4" placeholder="••••">
+            </div>
+            <div class="modal-actions">
+                <button class="btn withdraw-btn" onclick="closeAllModals()" style="background: transparent; color: #94a3b8;">Cancel</button>
+                <button class="btn deposit-btn" onclick="processWithdrawal()">Withdraw</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BUY DATA MODAL -->
+    <div id="dataModal" class="custom-modal">
+        <div class="modal-card" style="max-width: 440px;">
+            <h3>Buy Data Bundle</h3>
+            <p>Select plan and enter recipient phone number:</p>
+            <div class="form-group">
+                <label>Select Bundle Plan</label>
+                <select id="dataPlanSelect" class="form-input">
+                    <optgroup label="MTN BUNDLES">
+                        <option value="MTN 500MB (2D)|500">MTN 500MB (2D) - ₦500</option>
+                        <option value="MTN 1GB (7D)|410">MTN 1GB (7D) - ₦410</option>
+                        <option value="MTN 300MB (7D)|210">MTN 300MB (7D) - ₦210</option>
+                        <option value="MTN 2GB (30D)|1200">MTN 2GB (30D) - ₦1,200</option>
+                        <option value="MTN 1GB (30D)|700">MTN 1GB (30D) - ₦700</option>
+                        <option value="MTN 10GB (30D)|3500">MTN 10GB (30D) - ₦3,500</option>
+                    </optgroup>
+                    <optgroup label="AIRTEL BUNDLES">
+                        <option value="Airtel 1GB (1D)|400">Airtel 1GB (1D) - ₦400</option>
+                        <option value="Airtel 2GB (7D)|1000">Airtel 2GB (7D) - ₦1,000</option>
+                        <option value="Airtel 1GB (3D)|600">Airtel 1GB (3D) - ₦600</option>
+                        <option value="Airtel 10GB (30D)|3000">Airtel 10GB (30D) - ₦3,000</option>
+                    </optgroup>
+                    <optgroup label="GLO BUNDLES">
+                        <option value="Glo 500MB (7D)|200">Glo 500MB (7D) - ₦200</option>
+                        <option value="Glo 1GB (7D)|350">Glo 1GB (7D) - ₦350</option>
+                        <option value="Glo 2GB (30D)|1100">Glo 2GB (30D) - ₦1,100</option>
+                        <option value="Glo 10GB (30D)|3200">Glo 10GB (30D) - ₦3,200</option>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Recipient Phone Number</label>
+                <input type="text" id="dataPhone" class="form-input" placeholder="08012345678">
+            </div>
+            <div class="form-group">
+                <label>4-Digit Transaction PIN</label>
+                <input type="password" id="dataPin" class="form-input" maxlength="4" placeholder="••••">
+            </div>
+            <div class="modal-actions">
+                <button class="btn withdraw-btn" onclick="closeAllModals()" style="background: transparent; color: #94a3b8;">Cancel</button>
+                <button class="btn deposit-btn" onclick="processBuyData()">Purchase Data</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- BUY AIRTIME MODAL -->
+    <div id="airtimeModal" class="custom-modal">
+        <div class="modal-card">
+            <h3>Buy Airtime</h3>
+            <p>Instant VTU Top-up across all networks:</p>
+            <div class="form-group">
+                <label>Network Provider</label>
+                <select id="airtimeNetwork" class="form-input">
+                    <option value="MTN">MTN</option>
+                    <option value="Airtel">Airtel</option>
+                    <option value="Glo">Glo</option>
+                    <option value="9mobile">9mobile</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Recipient Phone Number</label>
+                <input type="text" id="airtimePhone" class="form-input" placeholder="08012345678">
+            </div>
+            <div class="form-group">
+                <label>Amount (₦)</label>
+                <input type="number" id="airtimeAmount" class="form-input" placeholder="e.g. 500">
+            </div>
+            <div class="form-group">
+                <label>4-Digit Transaction PIN</label>
+                <input type="password" id="airtimePin" class="form-input" maxlength="4" placeholder="••••">
+            </div>
+            <div class="modal-actions">
+                <button class="btn withdraw-btn" onclick="closeAllModals()" style="background: transparent; color: #94a3b8;">Cancel</button>
+                <button class="btn deposit-btn" onclick="processBuyAirtime()">Send Airtime</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="custom-modal">
+        <div class="modal-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin:0;">Platform Settings</h3>
+                <div class="icon-btn" onclick="closeAllModals()"><i class="fa-solid fa-xmark"></i></div>
+            </div>
+
+            <div id="brandSettingGroup" style="background: #1e293b; padding: 12px; border-radius: 10px; margin-bottom: 12px;">
+                <h4 style="font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">Brand Customization</h4>
+                <p style="margin-bottom: 8px;">Change display name (Owner Only):</p>
+                <button class="btn deposit-btn" onclick="updateProfileName()" style="padding: 8px; font-size: 0.8rem;">Edit Brand Name</button>
+            </div>
+
+            <div style="background: #1e293b; padding: 12px; border-radius: 10px;">
+                <h4 style="font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">Security & PIN</h4>
+                <p style="margin-bottom: 0;">Your transaction PIN is securely stored for your transfers.</p>
+            </div>
         </div>
     </div>
 
@@ -536,7 +703,6 @@
                 localStorage.setItem('apex_referred_by', refUser);
             }
 
-            // Check if user was already logged in
             let savedUser = localStorage.getItem('apex_logged_user');
             if (savedUser) {
                 currentUserAccount = JSON.parse(savedUser);
@@ -577,7 +743,6 @@
                     return;
                 }
 
-                // Save new user account profile with their custom PIN
                 let accountData = { identity: inputVal, pin: pinVal };
                 localStorage.setItem(cleanKey, JSON.stringify(accountData));
                 
@@ -585,20 +750,14 @@
                 toggleAuthMode();
                 document.getElementById("authInput").value = inputVal;
             } else {
-                // Sign In verification
                 let existingAccount = localStorage.getItem(cleanKey);
-                
-                // Allow owner or default entry if user didn't sign up strictly yet
-                let savedPin = "1234";
-                if (existingAccount) {
-                    let parsed = JSON.parse(existingAccount);
-                    savedPin = parsed.pin;
-                } else {
-                    // If account doesn't exist, auto-register with default PIN 1234 for smooth testing
-                    localStorage.setItem(cleanKey, JSON.stringify({ identity: inputVal, pin: "1234" }));
+                if (!existingAccount) {
+                    alert("❌ Account not found!\n\nYou must Sign Up first before logging in.");
+                    return;
                 }
 
-                currentUserAccount = { identity: inputVal, pin: savedPin };
+                let parsed = JSON.parse(existingAccount);
+                currentUserAccount = { identity: inputVal, pin: parsed.pin };
                 localStorage.setItem('apex_logged_user', JSON.stringify(currentUserAccount));
                 startDashboard(inputVal);
             }
@@ -609,12 +768,13 @@
             document.getElementById("dashboardScreen").style.display = "block";
             document.getElementById("userLoggedIdentity").innerText = identity;
 
-            // Check if owner/admin
             let cleanId = identity.toLowerCase();
-            if (cleanId.includes("tsebee") || cleanId.includes("domic") || cleanId.includes("09014759505")) {
-                document.getElementById("adminGear").style.display = "flex";
+            let isOwner = cleanId.includes("tsebee") || cleanId.includes("domic") || cleanId.includes("09014759505");
+            
+            if (isOwner) {
+                document.getElementById("brandSettingGroup").style.display = "block";
             } else {
-                document.getElementById("adminGear").style.display = "none";
+                document.getElementById("brandSettingGroup").style.display = "none";
             }
 
             let savedName = localStorage.getItem('apex_brand_name');
@@ -634,56 +794,44 @@
             return now.toLocaleDateString('en-US', options);
         }
 
-        function verifyUserPin() {
-            let userEnteredPin = prompt("Enter your 4-digit Transaction PIN:");
-            if (!userEnteredPin) return false;
-
-            if (currentUserAccount && userEnteredPin.trim() === currentUserAccount.pin) {
-                return true;
-            } else {
-                alert("❌ Incorrect Transaction PIN! Access denied.");
-                return false;
-            }
+        function closeAllModals() {
+            document.querySelectorAll('.custom-modal').forEach(m => m.style.display = 'none');
         }
 
         function openDepositModal() {
-            let choice = prompt("CHOOSE PAYMENT METHOD:\n1. Bank Transfer (OPay Manual)\n2. Link ATM Card (Instant Deposit)\n\nEnter 1 or 2:");
-            if (!choice) return;
-            
-            if (choice.trim() === "1") {
-                let amountInput = prompt("MANUAL BANK TRANSFER:\nBank: OPay\nAccount Number: 9014759505\nAccount Name: Tsebee Aondowase Dominic\n\nEnter the exact amount you transferred (₦):");
-                if (!amountInput) return;
-                
-                let amount = parseFloat(amountInput);
-                if(!isNaN(amount) && amount > 0) {
-                    let confirmPayment = confirm("Have you completed the mobile transfer of ₦" + amount.toLocaleString() + " to OPay 9014759505?\n\nClick OK if you have completed payment to notify support and process your credit.");
-                    if (confirmPayment) {
-                        processSuccessfulFunding(amount, "Bank Transfer Deposit");
-                    }
-                }
-            } else if (choice.trim() === "2") {
-                let cardNumber = prompt("Enter your 16-digit ATM Card Number:");
-                if (!cardNumber) return;
-                
-                if(cardNumber.length >= 12) {
-                    let exp = prompt("Enter Expiry Date (MM/YY):");
-                    if (!exp) return;
-                    
-                    let cvv = prompt("Enter CVV (3 digits):");
-                    if (!cvv) return;
-                    
-                    let amountInput = prompt("Enter amount to deposit via card (₦):");
-                    if (!amountInput) return;
-                    
-                    let amount = parseFloat(amountInput);
-                    if(!isNaN(amount) && amount > 0) {
-                        processSuccessfulFunding(amount, "ATM Card Deposit");
-                    } else {
-                        alert("Invalid amount entered.");
-                    }
-                } else {
-                    alert("Invalid card details provided.");
-                }
+            closeAllModals();
+            document.getElementById("depositModal").style.display = "flex";
+        }
+
+        function selectDepositMethod(type) {
+            closeAllModals();
+            if (type === 'bank') {
+                document.getElementById("bankDepositModal").style.display = "flex";
+            } else {
+                document.getElementById("cardDepositModal").style.display = "flex";
+            }
+        }
+
+        function confirmBankDeposit() {
+            let amtVal = document.getElementById("bankDepositAmount").value;
+            let amount = parseFloat(amtVal);
+            if (!isNaN(amount) && amount > 0) {
+                closeAllModals();
+                processSuccessfulFunding(amount, "Bank Transfer Deposit");
+            } else {
+                alert("Please enter a valid deposit amount.");
+            }
+        }
+
+        function confirmCardDeposit() {
+            let cardNum = document.getElementById("cardNum").value;
+            let amtVal = document.getElementById("cardAmount").value;
+            let amount = parseFloat(amtVal);
+            if (cardNum.length >= 12 && !isNaN(amount) && amount > 0) {
+                closeAllModals();
+                processSuccessfulFunding(amount, "ATM Card Deposit");
+            } else {
+                alert("Please check your card details and amount.");
             }
         }
 
@@ -712,125 +860,123 @@
             document.getElementById("dailyInterest").innerText = "+₦" + dailyEarn.toFixed(2) + " /day";
 
             addTransaction(methodTitle, "+" + amount.toLocaleString(), "positive");
-            alert("ALERT: Payment confirmed! ₦" + amount.toLocaleString() + " received via " + methodTitle + ". Wallet credited instantly.");
+            alert("Payment confirmed! ₦" + amount.toLocaleString() + " received via " + methodTitle + ". Wallet credited.");
         }
 
-        function openWithdraw() {
+        function openWithdrawModal() {
             if (currentBalance <= 0) {
-                alert("Insufficient funds! Your wallet balance is ₦0.00. Please deposit funds first.");
+                alert("Insufficient funds! Your wallet balance is ₦0.00.");
+                return;
+            }
+            closeAllModals();
+            document.getElementById("withdrawModal").style.display = "flex";
+        }
+
+        function processWithdrawal() {
+            let amtVal = document.getElementById("withdrawAmount").value;
+            let pinVal = document.getElementById("withdrawPin").value;
+            let amount = parseFloat(amtVal);
+
+            if (pinVal !== currentUserAccount.pin) {
+                alert("❌ Incorrect Transaction PIN!");
                 return;
             }
 
-            if (!verifyUserPin()) return;
-
-            let input = prompt("Enter withdrawal amount (₦):");
-            if (!input) return;
-            
-            let amount = parseFloat(input);
-            if(!isNaN(amount) && amount > 0) {
-                if(amount <= currentBalance) {
+            if (!isNaN(amount) && amount > 0) {
+                if (amount <= currentBalance) {
                     currentBalance -= amount;
                     document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
                     addTransaction("Wallet Withdrawal", "-" + amount.toLocaleString(), "negative");
+                    closeAllModals();
                     alert("Withdrawal of ₦" + amount.toLocaleString() + " processed successfully!");
                 } else {
                     alert("Insufficient balance in your wallet!");
                 }
-            }
-        }
-
-        function buyData() {
-            if (currentBalance <= 0) {
-                alert("❌ Insufficient funds!\n\nYour wallet balance is ₦0.00. Please deposit funds into your wallet before purchasing data bundles.");
-                return;
-            }
-            
-            let planChoice = prompt("CHOOSE DATA BUNDLE PLAN:\n\n-- MTN BUNDLES --\n1. MTN 500MB (2D) - ₦500\n2. MTN 1GB (7D) - ₦410\n3. MTN 300MB (7D) - ₦210\n4. MTN 2GB (30D) - ₦1,200\n5. MTN 1GB (30D) - ₦700\n6. MTN 10GB (30D) - ₦3,500\n\n-- AIRTEL BUNDLES --\n7. Airtel 1GB (1D) - ₦400\n8. Airtel 2GB (7D) - ₦1,000\n9. Airtel 1GB (3D) - ₦600\n10. Airtel 10GB (30D) - ₦3,000\n11. Airtel 4GB (30D) - ₦2,500\n\n-- GLO BUNDLES --\n12. Glo 500MB (7D) - ₦200\n13. Glo 1GB (7D) - ₦350\n14. Glo 2GB (30D) - ₦1,100\n15. Glo 10GB (30D) - ₦3,200\n\nEnter plan number (1 - 15):");
-            if (!planChoice) return;
-            
-            let planDetails = {
-                "1": { name: "MTN 500MB (2D)", price: 500 },
-                "2": { name: "MTN 1GB (7D)", price: 410 },
-                "3": { name: "MTN 300MB (7D)", price: 210 },
-                "4": { name: "MTN 2GB (30D)", price: 1200 },
-                "5": { name: "MTN 1GB (30D)", price: 700 },
-                "6": { name: "MTN 10GB (30D)", price: 3500 },
-                "7": { name: "Airtel 1GB (1D)", price: 400 },
-                "8": { name: "Airtel 2GB (7D)", price: 1000 },
-                "9": { name: "Airtel 1GB (3D)", price: 600 },
-                "10": { name: "Airtel 10GB (30D)", price: 3000 },
-                "11": { name: "Airtel 4GB (30D)", price: 2500 },
-                "12": { name: "Glo 500MB (7D)", price: 200 },
-                "13": { name: "Glo 1GB (7D)", price: 350 },
-                "14": { name: "Glo 2GB (30D)", price: 1100 },
-                "15": { name: "Glo 10GB (30D)", price: 3200 }
-            };
-
-            let key = planChoice.trim();
-            if (planDetails[key]) {
-                let selectedPlan = planDetails[key];
-                
-                if (currentBalance < selectedPlan.price) {
-                    alert("❌ Insufficient funds!\n\nYou selected " + selectedPlan.name + " (₦" + selectedPlan.price.toLocaleString() + "), but your wallet balance is only ₦" + currentBalance.toLocaleString() + ". Please fund your account.");
-                    return;
-                }
-
-                if (!verifyUserPin()) return;
-
-                let phone = prompt("Enter recipient phone number:");
-                if (!phone) return;
-                
-                if (phone.length >= 10) {
-                    currentBalance -= selectedPlan.price;
-                    document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
-                    addTransaction("Data (" + selectedPlan.name + " - " + phone + ")", "-" + selectedPlan.price.toLocaleString(), "negative");
-                    alert("Vending Successful! " + selectedPlan.name + " successfully sent to " + phone);
-                } else {
-                    alert("Invalid phone number entered.");
-                }
             } else {
-                alert("Invalid selection.");
+                alert("Enter a valid amount.");
             }
         }
 
-        function buyAirtime() {
+        function openDataModal() {
             if (currentBalance <= 0) {
-                alert("❌ Insufficient funds!\n\nYour wallet balance is ₦0.00. Please deposit funds to buy airtime.");
+                alert("❌ Insufficient funds! Please deposit first.");
                 return;
             }
-            let network = prompt("SELECT NETWORK FOR AIRTIME:\n1. MTN\n2. Airtel\n3. Glo\n4. 9mobile\n\nEnter option (1 - 4):");
-            if (!network) return;
-            
-            let amountInput = prompt("Enter Airtime Amount (₦):");
-            if (!amountInput) return;
-            let amount = parseFloat(amountInput);
+            closeAllModals();
+            document.getElementById("dataModal").style.display = "flex";
+        }
+
+        function processBuyData() {
+            let planData = document.getElementById("dataPlanSelect").value.split("|");
+            let planName = planData[0];
+            let planPrice = parseFloat(planData[1]);
+            let phone = document.getElementById("dataPhone").value.trim();
+            let pinVal = document.getElementById("dataPin").value.trim();
+
+            if (pinVal !== currentUserAccount.pin) {
+                alert("❌ Incorrect Transaction PIN!");
+                return;
+            }
+
+            if (currentBalance < planPrice) {
+                alert("❌ Insufficient funds for this plan!");
+                return;
+            }
+
+            if (phone.length >= 10) {
+                currentBalance -= planPrice;
+                document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
+                addTransaction("Data (" + planName + " - " + phone + ")", "-" + planPrice.toLocaleString(), "negative");
+                closeAllModals();
+                alert("Vending Successful! " + planName + " sent to " + phone);
+            } else {
+                alert("Enter a valid phone number.");
+            }
+        }
+
+        function openAirtimeModal() {
+            if (currentBalance <= 0) {
+                alert("❌ Insufficient funds! Please deposit first.");
+                return;
+            }
+            closeAllModals();
+            document.getElementById("airtimeModal").style.display = "flex";
+        }
+
+        function processBuyAirtime() {
+            let network = document.getElementById("airtimeNetwork").value;
+            let phone = document.getElementById("airtimePhone").value.trim();
+            let amtVal = document.getElementById("airtimeAmount").value;
+            let pinVal = document.getElementById("airtimePin").value.trim();
+            let amount = parseFloat(amtVal);
+
+            if (pinVal !== currentUserAccount.pin) {
+                alert("❌ Incorrect Transaction PIN!");
+                return;
+            }
 
             if (currentBalance < amount) {
-                alert("❌ Insufficient funds for this airtime amount.");
+                alert("❌ Insufficient funds!");
                 return;
             }
 
-            if (!verifyUserPin()) return;
-
-            let phone = prompt("Enter recipient phone number:");
-            if (!phone) return;
-
-            if(!isNaN(amount) && amount >= 50) {
+            if (!isNaN(amount) && amount >= 50 && phone.length >= 10) {
                 currentBalance -= amount;
                 document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
-                addTransaction("Airtime Topup (" + phone + ")", "-" + amount.toLocaleString(), "negative");
-                alert("₦" + amount.toLocaleString() + " airtime successfully sent to " + phone);
+                addTransaction(network + " Airtime (" + phone + ")", "-" + amount.toLocaleString(), "negative");
+                closeAllModals();
+                alert("₦" + amount.toLocaleString() + " " + network + " airtime sent successfully to " + phone);
             } else {
-                alert("Invalid amount or phone number.");
+                alert("Check amount (min ₦50) and phone number.");
             }
         }
 
-        function checkBalanceAndAlert(serviceType) {
+        function checkBalanceAndAlert() {
             if (currentBalance <= 0) {
-                alert("❌ Insufficient funds!\n\nYour wallet balance is ₦0.00. Please fund your account to access this service.");
+                alert("❌ Insufficient funds! Your wallet balance is ₦0.00.");
                 return;
             }
-            alert("Opening service portal...");
+            alert("Service portal loading...");
         }
 
         function copyReferralLink() {
@@ -859,12 +1005,9 @@
             txList.prepend(item);
         }
 
-        function openSettings() {
-            document.getElementById("settingsModal").style.display = "block";
-        }
-
-        function closeSettings() {
-            document.getElementById("settingsModal").style.display = "none";
+        function openSettingsModal() {
+            closeAllModals();
+            document.getElementById("settingsModal").style.display = "flex";
         }
 
         function updateProfileName() {
