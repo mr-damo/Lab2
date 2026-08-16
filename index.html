@@ -334,7 +334,6 @@
             font-weight: 600;
         }
 
-        /* CUSTOM MODAL POPUPS STYLING */
         .custom-modal {
             display: none;
             position: fixed;
@@ -385,7 +384,7 @@
 </head>
 <body>
 
-    <!-- AUTHENTICATION SCREEN (LOCKED GATEWAY) -->
+    <!-- AUTHENTICATION SCREEN -->
     <div id="authScreen" class="auth-container">
         <div class="auth-card">
             <h2 id="authTitle">Welcome to Apex Plug</h2>
@@ -412,7 +411,7 @@
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD (HIDDEN UNTIL AUTHENTICATED) -->
+    <!-- MAIN DASHBOARD -->
     <div id="dashboardScreen" class="dashboard-container" style="display: none;">
         <header class="header">
             <div class="user-info">
@@ -420,6 +419,7 @@
                 <p id="userLoggedIdentity">Logged In</p>
             </div>
             <div class="header-actions">
+                <div class="icon-btn" id="adminPanelBtn" onclick="openAdminModal()" title="Admin Manual Crediting" style="display: none; color: #34d399; border-color: rgba(52,211,153,0.3);"><i class="fa-solid fa-user-shield"></i></div>
                 <div class="icon-btn" onclick="openSettingsModal()" title="Platform Settings"><i class="fa-solid fa-gear"></i></div>
                 <a href="https://wa.me/2349122293418?text=Hello%20Apex%20Plug%20Support,%20I%20need%20assistance." target="_blank" class="icon-btn" title="Customer Care"><i class="fa-solid fa-headset"></i></a>
                 <div class="icon-btn" onclick="logoutUser()" title="Logout" style="color: #f87171; border-color: rgba(248,113,113,0.3);"><i class="fa-solid fa-right-from-bracket"></i></div>
@@ -565,7 +565,6 @@
             <p>Select your preferred funding method below:</p>
             <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px;">
                 <button class="btn deposit-btn" onclick="selectDepositMethod('bank')" style="justify-content: flex-start; padding: 14px;"><i class="fa-solid fa-building-columns"></i> Bank Transfer (OPay Manual)</button>
-                <button class="btn withdraw-btn" onclick="selectDepositMethod('card')" style="justify-content: flex-start; padding: 14px; background: #1e293b; border: 1px solid rgba(56, 189, 248, 0.2);"><i class="fa-solid fa-credit-card"></i> Link ATM Card (Instant)</button>
             </div>
             <button class="btn withdraw-btn" onclick="closeAllModals()" style="width: 100%; background: transparent; color: #94a3b8;">Cancel</button>
         </div>
@@ -587,37 +586,30 @@
         </div>
     </div>
 
-    <!-- ATM CARD DEPOSIT SUB-MODAL -->
-    <div id="cardDepositModal" class="custom-modal">
+    <!-- ADMIN MANUAL CREDITING MODAL (Owner Only) -->
+    <div id="adminModal" class="custom-modal">
         <div class="modal-card">
-            <h3>Instant Card Deposit</h3>
-            <p>Enter your card credentials securely:</p>
+            <h3>🛡️ Admin Manual Crediting</h3>
+            <p>Type the user's phone/email to credit their account balance after confirming their payment:</p>
+            
             <div class="form-group">
-                <label>Card Number</label>
-                <input type="text" id="cardNum" class="form-input" maxlength="16" placeholder="4123 4567 8901 2345">
+                <label>User Phone Number / Email</label>
+                <input type="text" id="adminUserQuery" class="form-input" placeholder="e.g. 08012345678">
             </div>
-            <div style="display: flex; gap: 10px;">
-                <div class="form-group" style="flex:1;">
-                    <label>Expiry (MM/YY)</label>
-                    <input type="text" id="cardExp" class="form-input" maxlength="5" placeholder="MM/YY">
-                </div>
-                <div class="form-group" style="flex:1;">
-                    <label>CVV</label>
-                    <input type="password" id="cardCvv" class="form-input" maxlength="3" placeholder="123">
-                </div>
-            </div>
+
             <div class="form-group">
-                <label>Amount (₦)</label>
-                <input type="number" id="cardAmount" class="form-input" placeholder="e.g. 2000">
+                <label>Amount to Credit (₦)</label>
+                <input type="number" id="adminCreditAmount" class="form-input" placeholder="e.g. 5000">
             </div>
+
             <div class="modal-actions">
                 <button class="btn withdraw-btn" onclick="closeAllModals()" style="background: transparent; color: #94a3b8;">Cancel</button>
-                <button class="btn deposit-btn" onclick="confirmCardDeposit()">Pay Now</button>
+                <button class="btn deposit-btn" onclick="executeAdminCredit()" style="background-color: #34d399; color: #070d1b;">Credit User Dashboard</button>
             </div>
         </div>
     </div>
 
-    <!-- WITHDRAWAL MODAL WITH BANK DROPDOWN & MANUAL ACCOUNT NAME INPUT -->
+    <!-- WITHDRAWAL MODAL -->
     <div id="withdrawModal" class="custom-modal">
         <div class="modal-card">
             <h3>Withdraw Funds</h3>
@@ -763,14 +755,12 @@
                 <div class="icon-btn" onclick="closeAllModals()"><i class="fa-solid fa-xmark"></i></div>
             </div>
 
-            <!-- BRAND CUSTOMIZATION (OWNER ONLY - HIDDEN FOR OTHERS) -->
             <div id="brandSettingGroup" style="background: #1e293b; padding: 12px; border-radius: 10px; margin-bottom: 12px; display: none;">
                 <h4 style="font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">Brand Customization</h4>
                 <p style="margin-bottom: 8px;">Change display name:</p>
                 <button class="btn deposit-btn" onclick="updateProfileName()" style="padding: 8px; font-size: 0.8rem;">Edit Brand Name</button>
             </div>
 
-            <!-- TRANSACTION PIN MANAGEMENT -->
             <div style="background: #1e293b; padding: 12px; border-radius: 10px;">
                 <h4 style="font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">Transaction PIN Management</h4>
                 <p style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 10px;">Set or update your 4-digit transfer/checkout PIN:</p>
@@ -785,14 +775,13 @@
     <script>
         let isSignUpMode = false;
         let currentBalance = 0;
-        let totalReferrals = 0;
-        let referralEarnings = 0;
-        let hasFundedBefore = false;
         let currentUserAccount = null;
 
-        // OTP verification temporary memory state
         let generatedOtp = "";
         let pendingOtpCallback = null;
+
+        const JARAPOINT_BASE_URL = "https://jarapoint.com/api/";
+        const JARAPOINT_API_KEY = "vtu-6a116cc963878";
 
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -804,6 +793,13 @@
             let savedUser = localStorage.getItem('apex_logged_user');
             if (savedUser) {
                 currentUserAccount = JSON.parse(savedUser);
+                
+                // Load actual stored balance if available
+                let savedBalance = localStorage.getItem('apex_balance_' + currentUserAccount.identity.toLowerCase());
+                if (savedBalance !== null) {
+                    currentBalance = parseFloat(savedBalance);
+                }
+
                 startDashboard(currentUserAccount.identity);
             } else {
                 document.getElementById("authScreen").style.display = "block";
@@ -849,6 +845,7 @@
                 triggerOtpVerification("Confirm OTP to complete your account registration:", function() {
                     let accountData = { identity: inputVal, loginCode: codeVal, txPin: "" };
                     localStorage.setItem(cleanKey, JSON.stringify(accountData));
+                    localStorage.setItem('apex_balance_' + inputVal.toLowerCase(), "0");
                     
                     alert("🎉 Account created successfully with your 6-digit login code! Please sign in.");
                     toggleAuthMode();
@@ -869,6 +866,10 @@
 
                 currentUserAccount = { identity: inputVal, loginCode: parsed.loginCode, txPin: parsed.txPin || "" };
                 localStorage.setItem('apex_logged_user', JSON.stringify(currentUserAccount));
+                
+                let savedBalance = localStorage.getItem('apex_balance_' + inputVal.toLowerCase());
+                currentBalance = savedBalance !== null ? parseFloat(savedBalance) : 0;
+
                 startDashboard(inputVal);
             }
         }
@@ -938,14 +939,17 @@
             document.getElementById("authScreen").style.display = "none";
             document.getElementById("dashboardScreen").style.display = "block";
             document.getElementById("userLoggedIdentity").innerText = identity;
+            document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
 
             let cleanId = identity.toLowerCase();
             let isOwner = cleanId.includes("tsebee") || cleanId.includes("domic") || cleanId.includes("09014759505");
             
             if (isOwner) {
                 document.getElementById("brandSettingGroup").style.display = "block";
+                document.getElementById("adminPanelBtn").style.display = "flex"; // Show Admin Shield Button for you
             } else {
                 document.getElementById("brandSettingGroup").style.display = "none";
+                document.getElementById("adminPanelBtn").style.display = "none";
             }
 
             let savedName = localStorage.getItem('apex_brand_name');
@@ -978,60 +982,74 @@
             closeAllModals();
             if (type === 'bank') {
                 document.getElementById("bankDepositModal").style.display = "flex";
-            } else {
-                document.getElementById("cardDepositModal").style.display = "flex";
             }
         }
 
         function confirmBankDeposit() {
-            let amtVal = document.getElementById("bankDepositAmount").value;
+            let amtVal = document.getElementById("bankDepositAmount").value.trim();
             let amount = parseFloat(amtVal);
-            if (!isNaN(amount) && amount > 0) {
-                closeAllModals();
-                processSuccessfulFunding(amount, "Bank Transfer Deposit");
-            } else {
-                alert("Please enter a valid deposit amount.");
+
+            if (isNaN(amount) || amount <= 0) {
+                alert("❌ Please enter a valid deposit amount.");
+                return;
             }
+
+            let userIdentity = currentUserAccount ? currentUserAccount.identity : "Unknown User";
+            let message = `Hello Apex Plug Support, I have made a manual bank transfer deposit.%0A%0A*Username/ID:* ${userIdentity}%0A*Amount:* ₦${amount.toLocaleString()}%0A*Payment Method:* OPay Manual Transfer%0A%0APlease verify my transfer and credit my wallet.`;
+
+            closeAllModals();
+
+            let whatsappUrl = `https://wa.me/2349122293418?text=${message}`;
+            window.open(whatsappUrl, '_blank');
+
+            alert("⚠️ Note: Funds will NOT reflect in your balance automatically. Please complete your transfer to OPay (9014759505 - Tsebee Aondowase Dominic) and send your payment proof via WhatsApp for manual verification and crediting.");
         }
 
-        function confirmCardDeposit() {
-            let cardNum = document.getElementById("cardNum").value;
-            let amtVal = document.getElementById("cardAmount").value;
-            let amount = parseFloat(amtVal);
-            if (cardNum.length >= 12 && !isNaN(amount) && amount > 0) {
-                closeAllModals();
-                processSuccessfulFunding(amount, "ATM Card Deposit");
-            } else {
-                alert("Please check your card details and amount.");
-            }
+        // ADMIN MANUAL CREDITING FEATURE
+        function openAdminModal() {
+            closeAllModals();
+            document.getElementById("adminUserQuery").value = "";
+            document.getElementById("adminCreditAmount").value = "";
+            document.getElementById("adminModal").style.display = "flex";
         }
 
-        function processSuccessfulFunding(amount, methodTitle) {
-            currentBalance += amount;
-            
-            if (!hasFundedBefore) {
-                hasFundedBefore = true;
-                let referredBy = localStorage.getItem('apex_referred_by');
-                if (referredBy) {
-                    totalReferrals += 1;
-                    referralEarnings += 200;
-                    currentBalance += 200;
-                    document.getElementById("refCount").innerText = totalReferrals;
-                    document.getElementById("refEarnings").innerText = "₦" + referralEarnings.toLocaleString();
-                    addTransaction("Referral Commission Bonus", "+₦200", "positive");
-                    alert("🎉 REFERRAL BONUS UNLOCKED!\n\nA ₦200 referral bonus has been automatically added to your balance!");
-                }
+        function executeAdminCredit() {
+            let userQuery = document.getElementById("adminUserQuery").value.trim().toLowerCase();
+            let creditAmtVal = document.getElementById("adminCreditAmount").value.trim();
+            let creditAmount = parseFloat(creditAmtVal);
+
+            if (!userQuery) {
+                alert("❌ Please enter the user's phone number or email.");
+                return;
             }
 
-            document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
-            
-            let dailyEarn = amount * 0.012;
-            document.getElementById("planName").innerText = "Smart Growth Plan";
-            document.getElementById("planCapital").innerText = "Capital: ₦" + amount.toLocaleString() + " (Active)";
-            document.getElementById("dailyInterest").innerText = "+₦" + dailyEarn.toFixed(2) + " /day";
+            if (isNaN(creditAmount) || creditAmount <= 0) {
+                alert("❌ Please enter a valid amount to credit.");
+                return;
+            }
 
-            addTransaction(methodTitle, "+" + amount.toLocaleString(), "positive");
-            alert("Payment confirmed! ₦" + amount.toLocaleString() + " received via " + methodTitle + ". Wallet credited.");
+            let cleanKey = "apex_user_" + userQuery;
+            let targetAccount = localStorage.getItem(cleanKey);
+
+            if (!targetAccount) {
+                alert("❌ User account not found in local storage under: " + userQuery);
+                return;
+            }
+
+            let balanceKey = "apex_balance_" + userQuery;
+            let existingBalance = localStorage.getItem(balanceKey);
+            let newBalance = (existingBalance !== null ? parseFloat(existingBalance) : 0) + creditAmount;
+
+            localStorage.setItem(balanceKey, newBalance.toString());
+
+            // If the currently logged-in user is the one being credited, update their live balance view instantly
+            if (currentUserAccount && currentUserAccount.identity.toLowerCase() === userQuery) {
+                currentBalance = newBalance;
+                document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
+            }
+
+            closeAllModals();
+            alert("✅ Successfully credited ₦" + creditAmount.toLocaleString() + " to " + userQuery + "! New balance is ₦" + newBalance.toLocaleString());
         }
 
         function openWithdrawModal() {
@@ -1070,6 +1088,7 @@
             if (!isNaN(amount) && amount > 0) {
                 if (amount <= currentBalance) {
                     currentBalance -= amount;
+                    localStorage.setItem('apex_balance_' + currentUserAccount.identity.toLowerCase(), currentBalance.toString());
                     document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
                     addTransaction("Withdrawal (" + bank + " - " + acctNo + " / " + acctName.toUpperCase() + ")", "-" + amount.toLocaleString(), "negative");
                     closeAllModals();
@@ -1109,15 +1128,45 @@
                 return;
             }
 
-            if (phone.length >= 10) {
+            if (phone.length < 10) {
+                alert("Enter a valid phone number.");
+                return;
+            }
+
+            let providerCode = "MTN";
+            if (planName.toUpperCase().includes("AIRTEL")) providerCode = "Airtel";
+            if (planName.toUpperCase().includes("GLO")) providerCode = "Glo";
+
+            alert("Processing data purchase via Jarapoint API...");
+
+            fetch(JARAPOINT_BASE_URL + "data", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + JARAPOINT_API_KEY,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    provider: providerCode,
+                    recipient: phone,
+                    plan: planName,
+                    ref: "APEX_" + Date.now()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Jarapoint Data Response:", data);
                 currentBalance -= planPrice;
+                localStorage.setItem('apex_balance_' + currentUserAccount.identity.toLowerCase(), currentBalance.toString());
                 document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
                 addTransaction("Data (" + planName + " - " + phone + ")", "-" + planPrice.toLocaleString(), "negative");
                 closeAllModals();
-                alert("Vending Successful! " + planName + " sent to " + phone);
-            } else {
-                alert("Enter a valid phone number.");
-            }
+                alert("✅ Vending Successful! " + planName + " sent to " + phone);
+            })
+            .catch(error => {
+                console.error("Jarapoint API Error:", error);
+                alert("❌ Error communicating with Jarapoint API gateway. Check connection.");
+            });
         }
 
         function openAirtimeModal() {
@@ -1147,15 +1196,42 @@
                 return;
             }
 
-            if (!isNaN(amount) && amount >= 50 && phone.length >= 10) {
+            if (isNaN(amount) || amount < 50 || phone.length < 10) {
+                alert("Check amount (min ₦50) and phone number.");
+                return;
+            }
+
+            alert("Processing airtime purchase via Jarapoint API...");
+
+            fetch(JARAPOINT_BASE_URL + "airtime", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + JARAPOINT_API_KEY,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                body: JSON.stringify({
+                    type: "airtime",
+                    provider: network,
+                    recipient: phone,
+                    amount: amount,
+                    ref: "APEX_" + Date.now()
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log("Jarapoint Airtime Response:", data);
                 currentBalance -= amount;
+                localStorage.setItem('apex_balance_' + currentUserAccount.identity.toLowerCase(), currentBalance.toString());
                 document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
                 addTransaction(network + " Airtime (" + phone + ")", "-" + amount.toLocaleString(), "negative");
                 closeAllModals();
-                alert("₦" + amount.toLocaleString() + " " + network + " airtime sent successfully to " + phone);
-            } else {
-                alert("Check amount (min ₦50) and phone number.");
-            }
+                alert("✅ ₦" + amount.toLocaleString() + " " + network + " airtime sent successfully to " + phone);
+            })
+            .catch(error => {
+                console.error("Jarapoint API Error:", error);
+                alert("❌ Error communicating with Jarapoint API gateway. Check connection.");
+            });
         }
 
         function openUtilityModal() {
@@ -1215,7 +1291,7 @@
             localStorage.setItem(cleanKey, JSON.stringify(currentUserAccount));
             localStorage.setItem('apex_logged_user', JSON.stringify(currentUserAccount));
 
-            document.getElementById("newSettingPin").value = "";
+            document.getElementById("newSettingpcPin" in window ? "newSettingpcPin" : "newSettingPin").value = "";
             alert("🔒 4-Digit Transaction PIN saved successfully!");
             closeAllModals();
         }
