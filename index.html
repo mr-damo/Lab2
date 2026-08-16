@@ -20,12 +20,74 @@
             display: flex;
             justify-content: center;
             padding: 15px 0;
+            min-height: 100vh;
         }
 
-        .dashboard-container {
+        .auth-container, .dashboard-container {
             width: 100%;
             max-width: 480px;
             padding: 15px;
+        }
+
+        .auth-card {
+            background: #111827;
+            padding: 24px;
+            border-radius: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            margin-top: 40px;
+        }
+
+        .auth-card h2 {
+            font-size: 1.5rem;
+            color: #ffffff;
+            margin-bottom: 6px;
+            text-align: center;
+        }
+
+        .auth-card p {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        .form-input:focus {
+            border-color: #38bdf8;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .auth-switch span {
+            color: #38bdf8;
+            cursor: pointer;
+            font-weight: 600;
         }
 
         .header {
@@ -312,15 +374,41 @@
 </head>
 <body>
 
-    <div class="dashboard-container">
+    <!-- AUTHENTICATION SCREEN -->
+    <div id="authScreen" class="auth-container">
+        <div class="auth-card">
+            <h2 id="authTitle">Welcome to Apex Plug</h2>
+            <p id="authSubtitle">Secure VTU & Financial Gateway</p>
+            
+            <div class="form-group">
+                <label id="identifierLabel">Phone Number or Gmail</label>
+                <input type="text" id="authInput" class="form-input" placeholder="e.g. 08012345678 or user@gmail.com">
+            </div>
+
+            <div class="form-group" id="pinGroup" style="display:none;">
+                <label>Create 4-Digit Transaction PIN</label>
+                <input type="password" id="authPin" class="form-input" maxlength="4" placeholder="••••">
+            </div>
+
+            <button class="btn deposit-btn" onclick="handleAuthSubmit()" style="width: 100%; margin-top: 10px;" id="authBtn">Sign In</button>
+            
+            <div class="auth-switch">
+                <span id="switchText" onclick="toggleAuthMode()">Don't have an account? Sign Up</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="dashboardScreen" class="dashboard-container" style="display: none;">
         <header class="header">
             <div class="user-info">
                 <h2><span id="displayName">Apex Plug</span> Hub 👋</h2>
-                <p>Automated VTU & Gateway</p>
+                <p id="userLoggedIdentity">Logged In</p>
             </div>
             <div class="header-actions">
-                <div class="icon-btn" onclick="openSettings()" title="Settings"><i class="fa-solid fa-gear"></i></div>
-                <a href="https://wa.me/2349122293418?text=Hello%20Apex%20Plug%20Support,%20I%20have%20completed%20my%20payment%20transfer.%20Please%20verify%20and%20credit%20my%20wallet." target="_blank" class="icon-btn" title="Customer Care"><i class="fa-solid fa-headset"></i></a>
+                <div id="adminGear" class="icon-btn" onclick="openSettings()" title="Admin Settings" style="display: none;"><i class="fa-solid fa-gear"></i></div>
+                <a href="https://wa.me/2349122293418?text=Hello%20Apex%20Plug%20Support,%20I%20need%20assistance." target="_blank" class="icon-btn" title="Customer Care"><i class="fa-solid fa-headset"></i></a>
+                <div class="icon-btn" onclick="logoutUser()" title="Logout" style="color: #f87171; border-color: rgba(248,113,113,0.3);"><i class="fa-solid fa-right-from-bracket"></i></div>
             </div>
         </header>
 
@@ -413,9 +501,10 @@
         </section>
     </div>
 
+    <!-- ADMIN SETTINGS MODAL (Owner Only) -->
     <div id="settingsModal">
         <div class="settings-header">
-            <h3>Platform Settings</h3>
+            <h3>Admin Platform Settings</h3>
             <div class="icon-btn" onclick="closeSettings()"><i class="fa-solid fa-xmark"></i></div>
         </div>
 
@@ -426,31 +515,135 @@
         </div>
 
         <div class="settings-group">
-            <h4>Security & PIN</h4>
-            <p>Protect wallet transactions with a secure 4-digit transaction PIN.</p>
-            <button class="btn withdraw-btn" onclick="alert('Transaction PIN settings updated.')" style="padding: 8px; background: rgba(255,255,255,0.1);">Set Transaction PIN</button>
+            <h4>System Security</h4>
+            <p>Admin privileges active for owner account.</p>
+            <button class="btn withdraw-btn" onclick="alert('System security status: Locked & Secure.')" style="padding: 8px; background: rgba(255,255,255,0.1);">Security Logs</button>
         </div>
     </div>
 
     <script>
+        let isSignUpMode = false;
         let currentBalance = 0;
         let totalReferrals = 0;
         let referralEarnings = 0;
         let hasFundedBefore = false;
+        let currentUserAccount = null;
 
-        // Check if user came via a referral link on load
         window.onload = function() {
             const urlParams = new URLSearchParams(window.location.search);
             const refUser = urlParams.get('ref');
             if (refUser) {
                 localStorage.setItem('apex_referred_by', refUser);
             }
+
+            // Check if user was already logged in
+            let savedUser = localStorage.getItem('apex_logged_user');
+            if (savedUser) {
+                currentUserAccount = JSON.parse(savedUser);
+                startDashboard(currentUserAccount.identity);
+            }
         };
+
+        function toggleAuthMode() {
+            isSignUpMode = !isSignUpMode;
+            if (isSignUpMode) {
+                document.getElementById("authTitle").innerText = "Create Account";
+                document.getElementById("authSubtitle").innerText = "Join Apex Plug Secure Hub";
+                document.getElementById("authBtn").innerText = "Sign Up";
+                document.getElementById("pinGroup").style.display = "block";
+                document.getElementById("switchText").innerText = "Already have an account? Sign In";
+            } else {
+                document.getElementById("authTitle").innerText = "Welcome to Apex Plug";
+                document.getElementById("authSubtitle").innerText = "Secure VTU & Financial Gateway";
+                document.getElementById("authBtn").innerText = "Sign In";
+                document.getElementById("pinGroup").style.display = "none";
+                document.getElementById("switchText").innerText = "Don't have an account? Sign Up";
+            }
+        }
+
+        function handleAuthSubmit() {
+            let inputVal = document.getElementById("authInput").value.trim();
+            if (!inputVal) {
+                alert("Please enter your Phone Number or Gmail.");
+                return;
+            }
+
+            let cleanKey = "apex_user_" + inputVal.toLowerCase();
+
+            if (isSignUpMode) {
+                let pinVal = document.getElementById("authPin").value.trim();
+                if (pinVal.length !== 4 || isNaN(pinVal)) {
+                    alert("Please enter a valid 4-digit numeric transaction PIN.");
+                    return;
+                }
+
+                // Save new user account profile with their custom PIN
+                let accountData = { identity: inputVal, pin: pinVal };
+                localStorage.setItem(cleanKey, JSON.stringify(accountData));
+                
+                alert("Account created successfully with your custom Transaction PIN! Please sign in now.");
+                toggleAuthMode();
+                document.getElementById("authInput").value = inputVal;
+            } else {
+                // Sign In verification
+                let existingAccount = localStorage.getItem(cleanKey);
+                
+                // Allow owner or default entry if user didn't sign up strictly yet
+                let savedPin = "1234";
+                if (existingAccount) {
+                    let parsed = JSON.parse(existingAccount);
+                    savedPin = parsed.pin;
+                } else {
+                    // If account doesn't exist, auto-register with default PIN 1234 for smooth testing
+                    localStorage.setItem(cleanKey, JSON.stringify({ identity: inputVal, pin: "1234" }));
+                }
+
+                currentUserAccount = { identity: inputVal, pin: savedPin };
+                localStorage.setItem('apex_logged_user', JSON.stringify(currentUserAccount));
+                startDashboard(inputVal);
+            }
+        }
+
+        function startDashboard(identity) {
+            document.getElementById("authScreen").style.display = "none";
+            document.getElementById("dashboardScreen").style.display = "block";
+            document.getElementById("userLoggedIdentity").innerText = identity;
+
+            // Check if owner/admin
+            let cleanId = identity.toLowerCase();
+            if (cleanId.includes("tsebee") || cleanId.includes("domic") || cleanId.includes("09014759505")) {
+                document.getElementById("adminGear").style.display = "flex";
+            } else {
+                document.getElementById("adminGear").style.display = "none";
+            }
+
+            let savedName = localStorage.getItem('apex_brand_name');
+            if (savedName) {
+                document.getElementById("displayName").innerText = savedName;
+            }
+        }
+
+        function logoutUser() {
+            localStorage.removeItem('apex_logged_user');
+            location.reload();
+        }
 
         function getCurrentFormattedDate() {
             const now = new Date();
             const options = { year: 'numeric', month: 'long', day: 'numeric' };
             return now.toLocaleDateString('en-US', options);
+        }
+
+        function verifyUserPin() {
+            let userEnteredPin = prompt("Enter your 4-digit Transaction PIN:");
+            if (!userEnteredPin) return false;
+
+            if (currentUserAccount && userEnteredPin.trim() === currentUserAccount.pin) {
+                return true;
+            } else {
+                alert("❌ Incorrect Transaction PIN! Access denied.");
+                return false;
+            }
         }
 
         function openDepositModal() {
@@ -497,18 +690,17 @@
         function processSuccessfulFunding(amount, methodTitle) {
             currentBalance += amount;
             
-            // Check if this is the first funding and user was referred by someone
             if (!hasFundedBefore) {
                 hasFundedBefore = true;
                 let referredBy = localStorage.getItem('apex_referred_by');
                 if (referredBy) {
                     totalReferrals += 1;
                     referralEarnings += 200;
-                    currentBalance += 200; // Add the ₦200 commission automatically!
+                    currentBalance += 200;
                     document.getElementById("refCount").innerText = totalReferrals;
                     document.getElementById("refEarnings").innerText = "₦" + referralEarnings.toLocaleString();
                     addTransaction("Referral Commission Bonus", "+₦200", "positive");
-                    alert("🎉 REFERRAL BONUS UNLOCKED!\n\nBecause you were referred by '" + referredBy + "' and just funded your wallet, a ₦200 referral bonus has been automatically added to your balance!");
+                    alert("🎉 REFERRAL BONUS UNLOCKED!\n\nA ₦200 referral bonus has been automatically added to your balance!");
                 }
             }
 
@@ -528,6 +720,9 @@
                 alert("Insufficient funds! Your wallet balance is ₦0.00. Please deposit funds first.");
                 return;
             }
+
+            if (!verifyUserPin()) return;
+
             let input = prompt("Enter withdrawal amount (₦):");
             if (!input) return;
             
@@ -546,7 +741,7 @@
 
         function buyData() {
             if (currentBalance <= 0) {
-                alert("Insufficient funds! Your wallet balance is ₦0.00. Please deposit to buy data bundles.");
+                alert("❌ Insufficient funds!\n\nYour wallet balance is ₦0.00. Please deposit funds into your wallet before purchasing data bundles.");
                 return;
             }
             
@@ -574,74 +769,68 @@
             let key = planChoice.trim();
             if (planDetails[key]) {
                 let selectedPlan = planDetails[key];
-                let phone = prompt("You selected " + selectedPlan.name + " (₦" + selectedPlan.price.toLocaleString() + ").\nEnter recipient phone number:");
+                
+                if (currentBalance < selectedPlan.price) {
+                    alert("❌ Insufficient funds!\n\nYou selected " + selectedPlan.name + " (₦" + selectedPlan.price.toLocaleString() + "), but your wallet balance is only ₦" + currentBalance.toLocaleString() + ". Please fund your account.");
+                    return;
+                }
+
+                if (!verifyUserPin()) return;
+
+                let phone = prompt("Enter recipient phone number:");
                 if (!phone) return;
                 
                 if (phone.length >= 10) {
-                    if (currentBalance >= selectedPlan.price) {
-                        currentBalance -= selectedPlan.price;
-                        document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
-                        addTransaction("Data (" + selectedPlan.name + " - " + phone + ")", "-" + selectedPlan.price.toLocaleString(), "negative");
-                        alert("Vending Successful! " + selectedPlan.name + " successfully sent to " + phone);
-                    } else {
-                        alert("Insufficient funds! You need at least ₦" + selectedPlan.price.toLocaleString() + " to buy this plan.");
-                    }
+                    currentBalance -= selectedPlan.price;
+                    document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
+                    addTransaction("Data (" + selectedPlan.name + " - " + phone + ")", "-" + selectedPlan.price.toLocaleString(), "negative");
+                    alert("Vending Successful! " + selectedPlan.name + " successfully sent to " + phone);
                 } else {
                     alert("Invalid phone number entered.");
                 }
             } else {
-                alert("Invalid selection. Please choose a valid plan number between 1 and 15.");
+                alert("Invalid selection.");
             }
         }
 
         function buyAirtime() {
             if (currentBalance <= 0) {
-                alert("Insufficient funds! Your wallet balance is ₦0.00. Please deposit to buy airtime.");
+                alert("❌ Insufficient funds!\n\nYour wallet balance is ₦0.00. Please deposit funds to buy airtime.");
                 return;
             }
-            let network = prompt("SELECT NETWORK FOR AIRTIME:\n1. MTN (Instant)\n2. Airtel (Instant)\n3. Glo (Instant)\n4. 9mobile (Instant)\n\nEnter option (1 - 4):");
+            let network = prompt("SELECT NETWORK FOR AIRTIME:\n1. MTN\n2. Airtel\n3. Glo\n4. 9mobile\n\nEnter option (1 - 4):");
             if (!network) return;
             
-            let netKey = network.trim();
-            if(netKey >= "1" && netKey <= "4") {
-                let phone = prompt("Enter recipient phone number for Airtime topup:");
-                if (!phone) return;
-                
-                if(phone.length >= 10) {
-                    let amountInput = prompt("Enter Airtime Amount (₦50 - ₦10,000):");
-                    if (!amountInput) return;
-                    
-                    let amount = parseFloat(amountInput);
-                    if(!isNaN(amount) && amount >= 50) {
-                        if(currentBalance >= amount) {
-                            currentBalance -= amount;
-                            document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
-                            addTransaction("Airtime Topup (" + phone + ")", "-" + amount.toLocaleString(), "negative");
-                            alert("₦" + amount.toLocaleString() + " airtime successfully sent to " + phone);
-                        } else {
-                            alert("Insufficient funds! Your balance is too low for this transaction amount.");
-                        }
-                    } else {
-                        alert("Minimum airtime purchase is ₦50.");
-                    }
-                } else {
-                    alert("Invalid phone number provided.");
-                }
+            let amountInput = prompt("Enter Airtime Amount (₦):");
+            if (!amountInput) return;
+            let amount = parseFloat(amountInput);
+
+            if (currentBalance < amount) {
+                alert("❌ Insufficient funds for this airtime amount.");
+                return;
+            }
+
+            if (!verifyUserPin()) return;
+
+            let phone = prompt("Enter recipient phone number:");
+            if (!phone) return;
+
+            if(!isNaN(amount) && amount >= 50) {
+                currentBalance -= amount;
+                document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
+                addTransaction("Airtime Topup (" + phone + ")", "-" + amount.toLocaleString(), "negative");
+                alert("₦" + amount.toLocaleString() + " airtime successfully sent to " + phone);
             } else {
-                alert("Invalid network selection.");
+                alert("Invalid amount or phone number.");
             }
         }
 
         function checkBalanceAndAlert(serviceType) {
             if (currentBalance <= 0) {
-                alert("Insufficient funds! Your wallet balance is ₦0.00. Please fund your account to access this service.");
+                alert("❌ Insufficient funds!\n\nYour wallet balance is ₦0.00. Please fund your account to access this service.");
                 return;
             }
-            if (serviceType === 'electricity') {
-                alert("Opening Electricity Token Vending Portal...");
-            } else if (serviceType === 'cable') {
-                alert("Opening Cable TV Subscription Portal...");
-            }
+            alert("Opening service portal...");
         }
 
         function copyReferralLink() {
@@ -649,7 +838,7 @@
             let refLink = window.location.origin + window.location.pathname + "?ref=" + username;
             
             navigator.clipboard.writeText(refLink).then(() => {
-                alert("Referral link copied successfully!\n\nLink: " + refLink + "\n\nShare it with your friends to earn ₦200 bonuses!");
+                alert("Referral link copied successfully!\n\nLink: " + refLink);
             }).catch(err => {
                 prompt("Copy your referral link below:", refLink);
             });
@@ -682,9 +871,10 @@
             let newName = prompt("Enter new brand name:");
             if(newName && newName.trim() !== "") {
                 document.getElementById("displayName").innerText = newName.trim();
+                localStorage.setItem('apex_brand_name', newName.trim());
                 alert("Brand name updated successfully!");
             }
         }
     </script>
 </body>
-</html
+</html>
