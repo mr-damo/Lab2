@@ -383,20 +383,21 @@
 </head>
 <body>
 
-    <!-- AUTHENTICATION SCREEN -->
+    <!-- AUTHENTICATION SCREEN (LOCKED GATEWAY) -->
     <div id="authScreen" class="auth-container">
         <div class="auth-card">
             <h2 id="authTitle">Welcome to Apex Plug</h2>
-            <p id="authSubtitle">Secure VTU & Financial Gateway</p>
+            <p id="authSubtitle">Secure VTU & Financial Gateway. Please sign in with your phone/email and 6-digit login code.</p>
             
             <div class="form-group">
                 <label id="identifierLabel">Phone Number or Gmail</label>
                 <input type="text" id="authInput" class="form-input" placeholder="e.g. 08012345678 or user@gmail.com">
             </div>
 
-            <div class="form-group" id="pinGroup" style="display:none;">
-                <label>Create 4-Digit Transaction PIN</label>
-                <input type="password" id="authPin" class="form-input" maxlength="4" placeholder="••••">
+            <!-- 6-digit code field for login/signup -->
+            <div class="form-group" id="pinGroup">
+                <label id="codeLabel">Enter Your 6-Digit Code</label>
+                <input type="password" id="authPin" class="form-input" maxlength="6" placeholder="••••••">
             </div>
 
             <button class="btn deposit-btn" onclick="handleAuthSubmit()" style="width: 100%; margin-top: 10px;" id="authBtn">Sign In</button>
@@ -407,7 +408,7 @@
         </div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
+    <!-- MAIN DASHBOARD (HIDDEN UNTIL AUTHENTICATED) -->
     <div id="dashboardScreen" class="dashboard-container" style="display: none;">
         <header class="header">
             <div class="user-info">
@@ -441,11 +442,11 @@
                     <i class="fa-solid fa-phone"></i>
                     <span>Airtime</span>
                 </div>
-                <div class="service-card" onclick="checkBalanceAndAlert()">
+                <div class="service-card" onclick="openUtilityModal()">
                     <i class="fa-solid fa-lightbulb"></i>
                     <span>Electricity</span>
                 </div>
-                <div class="service-card" onclick="checkBalanceAndAlert()">
+                <div class="service-card" onclick="openUtilityModal()">
                     <i class="fa-solid fa-tv"></i>
                     <span>Subscriptions</span>
                 </div>
@@ -573,7 +574,7 @@
     <div id="withdrawModal" class="custom-modal">
         <div class="modal-card">
             <h3>Withdraw Funds</h3>
-            <p>Enter withdrawal details and your transaction PIN:</p>
+            <p>Enter withdrawal details and your 4-digit Transaction PIN:</p>
             <div class="form-group">
                 <label>Amount to Withdraw (₦)</label>
                 <input type="number" id="withdrawAmount" class="form-input" placeholder="e.g. 1000">
@@ -667,6 +668,15 @@
         </div>
     </div>
 
+    <!-- UTILITY NOTICE MODAL -->
+    <div id="utilityModal" class="custom-modal">
+        <div class="modal-card">
+            <h3>Service Portal</h3>
+            <p>Utility bills and cable TV subscriptions are active. Fund your wallet or proceed with simulation.</p>
+            <button class="btn deposit-btn" onclick="closeAllModals()" style="width: 100%;">Got It</button>
+        </div>
+    </div>
+
     <!-- SETTINGS MODAL -->
     <div id="settingsModal" class="custom-modal">
         <div class="modal-card">
@@ -675,15 +685,21 @@
                 <div class="icon-btn" onclick="closeAllModals()"><i class="fa-solid fa-xmark"></i></div>
             </div>
 
-            <div id="brandSettingGroup" style="background: #1e293b; padding: 12px; border-radius: 10px; margin-bottom: 12px;">
+            <!-- BRAND CUSTOMIZATION (OWNER ONLY - HIDDEN FOR OTHERS) -->
+            <div id="brandSettingGroup" style="background: #1e293b; padding: 12px; border-radius: 10px; margin-bottom: 12px; display: none;">
                 <h4 style="font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">Brand Customization</h4>
-                <p style="margin-bottom: 8px;">Change display name (Owner Only):</p>
+                <p style="margin-bottom: 8px;">Change display name:</p>
                 <button class="btn deposit-btn" onclick="updateProfileName()" style="padding: 8px; font-size: 0.8rem;">Edit Brand Name</button>
             </div>
 
+            <!-- TRANSACTION PIN MANAGEMENT -->
             <div style="background: #1e293b; padding: 12px; border-radius: 10px;">
-                <h4 style="font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">Security & PIN</h4>
-                <p style="margin-bottom: 0;">Your transaction PIN is securely stored for your transfers.</p>
+                <h4 style="font-size: 0.85rem; color: #38bdf8; margin-bottom: 6px;">Transaction PIN Management</h4>
+                <p style="font-size: 0.78rem; color: #94a3b8; margin-bottom: 10px;">Set or update your 4-digit transfer/checkout PIN:</p>
+                <div class="form-group" style="margin-bottom: 8px;">
+                    <input type="password" id="newSettingPin" class="form-input" maxlength="4" placeholder="Enter 4-digit PIN">
+                </div>
+                <button class="btn deposit-btn" onclick="updateUserPin()" style="padding: 8px; font-size: 0.8rem; width: 100%;">Save Transaction PIN</button>
             </div>
         </div>
     </div>
@@ -707,6 +723,9 @@
             if (savedUser) {
                 currentUserAccount = JSON.parse(savedUser);
                 startDashboard(currentUserAccount.identity);
+            } else {
+                document.getElementById("authScreen").style.display = "block";
+                document.getElementById("dashboardScreen").style.display = "none";
             }
         };
 
@@ -714,50 +733,57 @@
             isSignUpMode = !isSignUpMode;
             if (isSignUpMode) {
                 document.getElementById("authTitle").innerText = "Create Account";
-                document.getElementById("authSubtitle").innerText = "Join Apex Plug Secure Hub";
+                document.getElementById("authSubtitle").innerText = "Set up your credentials and custom 6-digit login code";
                 document.getElementById("authBtn").innerText = "Sign Up";
-                document.getElementById("pinGroup").style.display = "block";
+                document.getElementById("codeLabel").innerText = "Create Your 6-Digit Login Code";
                 document.getElementById("switchText").innerText = "Already have an account? Sign In";
             } else {
                 document.getElementById("authTitle").innerText = "Welcome to Apex Plug";
-                document.getElementById("authSubtitle").innerText = "Secure VTU & Financial Gateway";
+                document.getElementById("authSubtitle").innerText = "Secure VTU & Financial Gateway. Please sign in with your 6-digit login code.";
                 document.getElementById("authBtn").innerText = "Sign In";
-                document.getElementById("pinGroup").style.display = "none";
+                document.getElementById("codeLabel").innerText = "Enter Your 6-Digit Login Code";
                 document.getElementById("switchText").innerText = "Don't have an account? Sign Up";
             }
+            document.getElementById("authPin").value = "";
         }
 
         function handleAuthSubmit() {
             let inputVal = document.getElementById("authInput").value.trim();
+            let codeVal = document.getElementById("authPin").value.trim();
+
             if (!inputVal) {
                 alert("Please enter your Phone Number or Gmail.");
+                return;
+            }
+
+            if (codeVal.length !== 6 || isNaN(codeVal)) {
+                alert("Please enter a valid 6-digit login code.");
                 return;
             }
 
             let cleanKey = "apex_user_" + inputVal.toLowerCase();
 
             if (isSignUpMode) {
-                let pinVal = document.getElementById("authPin").value.trim();
-                if (pinVal.length !== 4 || isNaN(pinVal)) {
-                    alert("Please enter a valid 4-digit numeric transaction PIN.");
-                    return;
-                }
-
-                let accountData = { identity: inputVal, pin: pinVal };
+                let accountData = { identity: inputVal, loginCode: codeVal, txPin: "" };
                 localStorage.setItem(cleanKey, JSON.stringify(accountData));
                 
-                alert("Account created successfully with your custom Transaction PIN! Please sign in now.");
+                alert("🎉 Account created successfully with your 6-digit login code! Please switch to Sign In and log in.");
                 toggleAuthMode();
                 document.getElementById("authInput").value = inputVal;
             } else {
                 let existingAccount = localStorage.getItem(cleanKey);
                 if (!existingAccount) {
-                    alert("❌ Account not found!\n\nYou must Sign Up first before logging in.");
+                    alert("❌ Account not found! You must Sign Up first before you can access the platform.");
                     return;
                 }
 
                 let parsed = JSON.parse(existingAccount);
-                currentUserAccount = { identity: inputVal, pin: parsed.pin };
+                if (codeVal !== parsed.loginCode) {
+                    alert("❌ Incorrect 6-digit login code!");
+                    return;
+                }
+
+                currentUserAccount = { identity: inputVal, loginCode: parsed.loginCode, txPin: parsed.txPin || "" };
                 localStorage.setItem('apex_logged_user', JSON.stringify(currentUserAccount));
                 startDashboard(inputVal);
             }
@@ -864,11 +890,12 @@
         }
 
         function openWithdrawModal() {
-            if (currentBalance <= 0) {
-                alert("Insufficient funds! Your wallet balance is ₦0.00.");
+            closeAllModals();
+            if (!currentUserAccount.txPin) {
+                alert("⚠️ You have not set a Transaction PIN yet! Please go to Settings to set your 4-digit transaction PIN first.");
+                openSettingsModal();
                 return;
             }
-            closeAllModals();
             document.getElementById("withdrawModal").style.display = "flex";
         }
 
@@ -877,7 +904,7 @@
             let pinVal = document.getElementById("withdrawPin").value;
             let amount = parseFloat(amtVal);
 
-            if (pinVal !== currentUserAccount.pin) {
+            if (pinVal !== currentUserAccount.txPin) {
                 alert("❌ Incorrect Transaction PIN!");
                 return;
             }
@@ -898,11 +925,12 @@
         }
 
         function openDataModal() {
-            if (currentBalance <= 0) {
-                alert("❌ Insufficient funds! Please deposit first.");
+            closeAllModals();
+            if (!currentUserAccount.txPin) {
+                alert("⚠️ You have not set a Transaction PIN yet! Please go to Settings to set your 4-digit transaction PIN first.");
+                openSettingsModal();
                 return;
             }
-            closeAllModals();
             document.getElementById("dataModal").style.display = "flex";
         }
 
@@ -913,7 +941,7 @@
             let phone = document.getElementById("dataPhone").value.trim();
             let pinVal = document.getElementById("dataPin").value.trim();
 
-            if (pinVal !== currentUserAccount.pin) {
+            if (pinVal !== currentUserAccount.txPin) {
                 alert("❌ Incorrect Transaction PIN!");
                 return;
             }
@@ -935,11 +963,12 @@
         }
 
         function openAirtimeModal() {
-            if (currentBalance <= 0) {
-                alert("❌ Insufficient funds! Please deposit first.");
+            closeAllModals();
+            if (!currentUserAccount.txPin) {
+                alert("⚠️ You have not set a Transaction PIN yet! Please go to Settings to set your 4-digit transaction PIN first.");
+                openSettingsModal();
                 return;
             }
-            closeAllModals();
             document.getElementById("airtimeModal").style.display = "flex";
         }
 
@@ -950,7 +979,7 @@
             let pinVal = document.getElementById("airtimePin").value.trim();
             let amount = parseFloat(amtVal);
 
-            if (pinVal !== currentUserAccount.pin) {
+            if (pinVal !== currentUserAccount.txPin) {
                 alert("❌ Incorrect Transaction PIN!");
                 return;
             }
@@ -971,12 +1000,9 @@
             }
         }
 
-        function checkBalanceAndAlert() {
-            if (currentBalance <= 0) {
-                alert("❌ Insufficient funds! Your wallet balance is ₦0.00.");
-                return;
-            }
-            alert("Service portal loading...");
+        function openUtilityModal() {
+            closeAllModals();
+            document.getElementById("utilityModal").style.display = "flex";
         }
 
         function copyReferralLink() {
@@ -1017,6 +1043,23 @@
                 localStorage.setItem('apex_brand_name', newName.trim());
                 alert("Brand name updated successfully!");
             }
+        }
+
+        function updateUserPin() {
+            let newPin = document.getElementById("newSettingPin").value.trim();
+            if (newPin.length !== 4 || isNaN(newPin)) {
+                alert("❌ Please enter a valid 4-digit numeric transaction PIN.");
+                return;
+            }
+
+            currentUserAccount.txPin = newPin;
+            let cleanKey = "apex_user_" + currentUserAccount.identity.toLowerCase();
+            localStorage.setItem(cleanKey, JSON.stringify(currentUserAccount));
+            localStorage.setItem('apex_logged_user', JSON.stringify(currentUserAccount));
+
+            document.getElementById("newSettingPin").value = "";
+            alert("🔒 4-Digit Transaction PIN saved successfully!");
+            closeAllModals();
         }
     </script>
 </body>
