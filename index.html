@@ -617,15 +617,15 @@
         </div>
     </div>
 
-    <!-- WITHDRAWAL MODAL WITH BANK DROPDOWN & AUTO-NAME LOOKUP -->
+    <!-- WITHDRAWAL MODAL WITH BANK DROPDOWN & MANUAL ACCOUNT NAME INPUT -->
     <div id="withdrawModal" class="custom-modal">
         <div class="modal-card">
             <h3>Withdraw Funds</h3>
-            <p>Select your bank, input account number, and your name will auto-populate:</p>
+            <p>Select your bank, input account number, and type your exact account name:</p>
             
             <div class="form-group">
                 <label>Select Bank</label>
-                <select id="withdrawBank" class="form-input">
+                <select id="withdrawBank" class="form-input" autocomplete="off">
                     <option value="">-- Choose Bank --</option>
                     <option value="Opay">Opay</option>
                     <option value="Moniepoint">Moniepoint MFB</option>
@@ -643,12 +643,12 @@
 
             <div class="form-group">
                 <label>Account Number (10 Digits)</label>
-                <input type="text" id="withdrawAcctNo" class="form-input" maxlength="10" placeholder="0123456789" oninput="lookupAccountName()">
+                <input type="text" id="withdrawAcctNo" class="form-input" maxlength="10" placeholder="0123456789" autocomplete="off" inputmode="numeric">
             </div>
 
             <div class="form-group">
-                <label>Account Name (Auto-Populated)</label>
-                <input type="text" id="withdrawAcctName" class="form-input" placeholder="Account name will appear here..." readonly style="background: #151c2e; color: #34d399; font-weight: 600;">
+                <label>Account Name (Type Exact Name)</label>
+                <input type="text" id="withdrawAcctName" class="form-input" placeholder="e.g. TSEBEE AONDOWASE DOMINIC" autocomplete="off" style="text-transform: uppercase;">
             </div>
 
             <div class="form-group">
@@ -846,7 +846,6 @@
             let cleanKey = "apex_user_" + inputVal.toLowerCase();
 
             if (isSignUpMode) {
-                // Trigger OTP Verification for Sign Up
                 triggerOtpVerification("Confirm OTP to complete your account registration:", function() {
                     let accountData = { identity: inputVal, loginCode: codeVal, txPin: "" };
                     localStorage.setItem(cleanKey, JSON.stringify(accountData));
@@ -901,7 +900,6 @@
                 return;
             }
 
-            // Trigger OTP Verification for Password Reset
             triggerOtpVerification("Confirm OTP to reset login code for: " + userVal, function() {
                 let parsed = JSON.parse(existingAccount);
                 parsed.loginCode = newPinVal;
@@ -914,7 +912,6 @@
         }
 
         function triggerOtpVerification(infoText, successCallback) {
-            // Generate a random 6-digit OTP code
             generatedOtp = Math.floor(100000 + Math.random() * 900000).toString();
             document.getElementById("displayOtpCode").innerText = generatedOtp;
             document.getElementById("otpInfoText").innerText = infoText;
@@ -1047,18 +1044,6 @@
             document.getElementById("withdrawModal").style.display = "flex";
         }
 
-        function lookupAccountName() {
-            let acctNo = document.getElementById("withdrawAcctNo").value.trim();
-            let bank = document.getElementById("withdrawBank").value;
-            let nameField = document.getElementById("withdrawAcctName");
-
-            if (acctNo.length === 10 && bank !== "") {
-                nameField.value = currentUserAccount.identity.toUpperCase() + " (" + bank.toUpperCase() + ")";
-            } else {
-                nameField.value = "";
-            }
-        }
-
         function processWithdrawal() {
             let bank = document.getElementById("withdrawBank").value;
             let acctNo = document.getElementById("withdrawAcctNo").value.trim();
@@ -1067,8 +1052,13 @@
             let pinVal = document.getElementById("withdrawPin").value;
             let amount = parseFloat(amtVal);
 
-            if (!bank || acctNo.length !== 10 || !acctName) {
+            if (!bank || acctNo.length !== 10 || isNaN(acctNo)) {
                 alert("❌ Please select a bank and enter a valid 10-digit account number.");
+                return;
+            }
+
+            if (!acctName) {
+                alert("❌ Please enter the exact account name registered with the bank.");
                 return;
             }
 
@@ -1081,9 +1071,9 @@
                 if (amount <= currentBalance) {
                     currentBalance -= amount;
                     document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
-                    addTransaction("Withdrawal (" + bank + " - " + acctNo + ")", "-" + amount.toLocaleString(), "negative");
+                    addTransaction("Withdrawal (" + bank + " - " + acctNo + " / " + acctName.toUpperCase() + ")", "-" + amount.toLocaleString(), "negative");
                     closeAllModals();
-                    alert("Withdrawal request of ₦" + amount.toLocaleString() + " to " + bank + " (" + acctNo + ") processed successfully!");
+                    alert("Withdrawal request of ₦" + amount.toLocaleString() + " to " + bank + " (" + acctNo + " - " + acctName.toUpperCase() + ") processed successfully!");
                 } else {
                     alert("Insufficient balance in your wallet!");
                 }
