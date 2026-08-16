@@ -357,7 +357,11 @@
 
         <section class="referral-section">
             <h3 style="font-size: 1rem; margin-bottom: 8px; color: #cbd5e1;">Refer & Earn ₦200</h3>
-            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 12px;">Share your link with friends. Get paid instantly when they fund their wallet!</p>
+            <p style="font-size: 0.8rem; color: #94a3b8; margin-bottom: 12px;">Share your link. Earn ₦200 instantly when your invitee funds their wallet!</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; font-size: 0.8rem; background: #070d1b; padding: 8px 12px; border-radius: 8px;">
+                <span>Total Referrals: <strong id="refCount" style="color: #38bdf8;">0</strong></span>
+                <span>Referral Earnings: <strong id="refEarnings" style="color: #34d399;">₦0.00</strong></span>
+            </div>
             <button class="btn deposit-btn" onclick="copyReferralLink()" style="width: 100%;"><i class="fa-solid fa-share-nodes"></i> Copy Referral Link</button>
         </section>
 
@@ -376,18 +380,22 @@
         </section>
 
         <section class="pricing-section">
-            <h3>VTU Rates (Jarapoint API Synced)</h3>
+            <h3>Popular Data Rates</h3>
             <div class="price-row">
-                <span>MTN 1GB (30 Days)</span>
-                <strong>₦410</strong>
+                <span>MTN 300MB (7D) / 500MB (2D)</span>
+                <strong>₦210 / ₦500</strong>
             </div>
             <div class="price-row">
-                <span>Airtel 1GB (30 Days)</span>
-                <strong>₦400</strong>
+                <span>MTN 1GB (7D / 30D)</span>
+                <strong>₦410 / ₦700</strong>
             </div>
             <div class="price-row">
-                <span>Glo 1GB (30 Days)</span>
-                <strong>₦390</strong>
+                <span>Airtel 1GB (3D / 1D)</span>
+                <strong>₦600 / ₦400</strong>
+            </div>
+            <div class="price-row">
+                <span>Glo 1GB (7 Days / 30 Days)</span>
+                <strong>₦350 / ₦650</strong>
             </div>
         </section>
 
@@ -422,17 +430,22 @@
             <p>Protect wallet transactions with a secure 4-digit transaction PIN.</p>
             <button class="btn withdraw-btn" onclick="alert('Transaction PIN settings updated.')" style="padding: 8px; background: rgba(255,255,255,0.1);">Set Transaction PIN</button>
         </div>
-
-        <div class="settings-group">
-            <h4>Jarapoint API Integration</h4>
-            <p>Base URL: <span style="color: #38bdf8; font-size: 0.75rem;">https://jarapoint.com/api/</span></p>
-            <p>Auth Key: <strong style="color: #34d399; font-size: 0.75rem;">vtu-6a116cc963878</strong></p>
-            <p>Status: <strong style="color: #34d399;">Connected & Live</strong></p>
-        </div>
     </div>
 
     <script>
         let currentBalance = 0;
+        let totalReferrals = 0;
+        let referralEarnings = 0;
+        let hasFundedBefore = false;
+
+        // Check if user came via a referral link on load
+        window.onload = function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refUser = urlParams.get('ref');
+            if (refUser) {
+                localStorage.setItem('apex_referred_by', refUser);
+            }
+        };
 
         function getCurrentFormattedDate() {
             const now = new Date();
@@ -442,9 +455,12 @@
 
         function openDepositModal() {
             let choice = prompt("CHOOSE PAYMENT METHOD:\n1. Bank Transfer (OPay Manual)\n2. Link ATM Card (Instant Deposit)\n\nEnter 1 or 2:");
+            if (!choice) return;
             
-            if (choice === "1") {
+            if (choice.trim() === "1") {
                 let amountInput = prompt("MANUAL BANK TRANSFER:\nBank: OPay\nAccount Number: 9014759505\nAccount Name: Tsebee Aondowase Dominic\n\nEnter the exact amount you transferred (₦):");
+                if (!amountInput) return;
+                
                 let amount = parseFloat(amountInput);
                 if(!isNaN(amount) && amount > 0) {
                     let confirmPayment = confirm("Have you completed the mobile transfer of ₦" + amount.toLocaleString() + " to OPay 9014759505?\n\nClick OK if you have completed payment to notify support and process your credit.");
@@ -452,14 +468,21 @@
                         processSuccessfulFunding(amount, "Bank Transfer Deposit");
                     }
                 }
-            } else if (choice === "2") {
+            } else if (choice.trim() === "2") {
                 let cardNumber = prompt("Enter your 16-digit ATM Card Number:");
-                if(cardNumber && cardNumber.length >= 12) {
-                    prompt("Enter Expiry Date (MM/YY):");
-                    prompt("Enter CVV (3 digits):");
+                if (!cardNumber) return;
+                
+                if(cardNumber.length >= 12) {
+                    let exp = prompt("Enter Expiry Date (MM/YY):");
+                    if (!exp) return;
+                    
+                    let cvv = prompt("Enter CVV (3 digits):");
+                    if (!cvv) return;
+                    
                     let amountInput = prompt("Enter amount to deposit via card (₦):");
+                    if (!amountInput) return;
+                    
                     let amount = parseFloat(amountInput);
-
                     if(!isNaN(amount) && amount > 0) {
                         processSuccessfulFunding(amount, "ATM Card Deposit");
                     } else {
@@ -473,6 +496,22 @@
 
         function processSuccessfulFunding(amount, methodTitle) {
             currentBalance += amount;
+            
+            // Check if this is the first funding and user was referred by someone
+            if (!hasFundedBefore) {
+                hasFundedBefore = true;
+                let referredBy = localStorage.getItem('apex_referred_by');
+                if (referredBy) {
+                    totalReferrals += 1;
+                    referralEarnings += 200;
+                    currentBalance += 200; // Add the ₦200 commission automatically!
+                    document.getElementById("refCount").innerText = totalReferrals;
+                    document.getElementById("refEarnings").innerText = "₦" + referralEarnings.toLocaleString();
+                    addTransaction("Referral Commission Bonus", "+₦200", "positive");
+                    alert("🎉 REFERRAL BONUS UNLOCKED!\n\nBecause you were referred by '" + referredBy + "' and just funded your wallet, a ₦200 referral bonus has been automatically added to your balance!");
+                }
+            }
+
             document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
             
             let dailyEarn = amount * 0.012;
@@ -490,8 +529,9 @@
                 return;
             }
             let input = prompt("Enter withdrawal amount (₦):");
+            if (!input) return;
+            
             let amount = parseFloat(input);
-
             if(!isNaN(amount) && amount > 0) {
                 if(amount <= currentBalance) {
                     currentBalance -= amount;
@@ -499,4 +539,152 @@
                     addTransaction("Wallet Withdrawal", "-" + amount.toLocaleString(), "negative");
                     alert("Withdrawal of ₦" + amount.toLocaleString() + " processed successfully!");
                 } else {
-                    alert("Insufficient balance in your 
+                    alert("Insufficient balance in your wallet!");
+                }
+            }
+        }
+
+        function buyData() {
+            if (currentBalance <= 0) {
+                alert("Insufficient funds! Your wallet balance is ₦0.00. Please deposit to buy data bundles.");
+                return;
+            }
+            
+            let planChoice = prompt("CHOOSE DATA BUNDLE PLAN:\n\n-- MTN BUNDLES --\n1. MTN 500MB (2D) - ₦500\n2. MTN 1GB (7D) - ₦410\n3. MTN 300MB (7D) - ₦210\n4. MTN 2GB (30D) - ₦1,200\n5. MTN 1GB (30D) - ₦700\n6. MTN 10GB (30D) - ₦3,500\n\n-- AIRTEL BUNDLES --\n7. Airtel 1GB (1D) - ₦400\n8. Airtel 2GB (7D) - ₦1,000\n9. Airtel 1GB (3D) - ₦600\n10. Airtel 10GB (30D) - ₦3,000\n11. Airtel 4GB (30D) - ₦2,500\n\n-- GLO BUNDLES --\n12. Glo 500MB (7D) - ₦200\n13. Glo 1GB (7D) - ₦350\n14. Glo 2GB (30D) - ₦1,100\n15. Glo 10GB (30D) - ₦3,200\n\nEnter plan number (1 - 15):");
+            if (!planChoice) return;
+            
+            let planDetails = {
+                "1": { name: "MTN 500MB (2D)", price: 500 },
+                "2": { name: "MTN 1GB (7D)", price: 410 },
+                "3": { name: "MTN 300MB (7D)", price: 210 },
+                "4": { name: "MTN 2GB (30D)", price: 1200 },
+                "5": { name: "MTN 1GB (30D)", price: 700 },
+                "6": { name: "MTN 10GB (30D)", price: 3500 },
+                "7": { name: "Airtel 1GB (1D)", price: 400 },
+                "8": { name: "Airtel 2GB (7D)", price: 1000 },
+                "9": { name: "Airtel 1GB (3D)", price: 600 },
+                "10": { name: "Airtel 10GB (30D)", price: 3000 },
+                "11": { name: "Airtel 4GB (30D)", price: 2500 },
+                "12": { name: "Glo 500MB (7D)", price: 200 },
+                "13": { name: "Glo 1GB (7D)", price: 350 },
+                "14": { name: "Glo 2GB (30D)", price: 1100 },
+                "15": { name: "Glo 10GB (30D)", price: 3200 }
+            };
+
+            let key = planChoice.trim();
+            if (planDetails[key]) {
+                let selectedPlan = planDetails[key];
+                let phone = prompt("You selected " + selectedPlan.name + " (₦" + selectedPlan.price.toLocaleString() + ").\nEnter recipient phone number:");
+                if (!phone) return;
+                
+                if (phone.length >= 10) {
+                    if (currentBalance >= selectedPlan.price) {
+                        currentBalance -= selectedPlan.price;
+                        document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
+                        addTransaction("Data (" + selectedPlan.name + " - " + phone + ")", "-" + selectedPlan.price.toLocaleString(), "negative");
+                        alert("Vending Successful! " + selectedPlan.name + " successfully sent to " + phone);
+                    } else {
+                        alert("Insufficient funds! You need at least ₦" + selectedPlan.price.toLocaleString() + " to buy this plan.");
+                    }
+                } else {
+                    alert("Invalid phone number entered.");
+                }
+            } else {
+                alert("Invalid selection. Please choose a valid plan number between 1 and 15.");
+            }
+        }
+
+        function buyAirtime() {
+            if (currentBalance <= 0) {
+                alert("Insufficient funds! Your wallet balance is ₦0.00. Please deposit to buy airtime.");
+                return;
+            }
+            let network = prompt("SELECT NETWORK FOR AIRTIME:\n1. MTN (Instant)\n2. Airtel (Instant)\n3. Glo (Instant)\n4. 9mobile (Instant)\n\nEnter option (1 - 4):");
+            if (!network) return;
+            
+            let netKey = network.trim();
+            if(netKey >= "1" && netKey <= "4") {
+                let phone = prompt("Enter recipient phone number for Airtime topup:");
+                if (!phone) return;
+                
+                if(phone.length >= 10) {
+                    let amountInput = prompt("Enter Airtime Amount (₦50 - ₦10,000):");
+                    if (!amountInput) return;
+                    
+                    let amount = parseFloat(amountInput);
+                    if(!isNaN(amount) && amount >= 50) {
+                        if(currentBalance >= amount) {
+                            currentBalance -= amount;
+                            document.getElementById("walletBalance").innerText = "₦" + currentBalance.toLocaleString();
+                            addTransaction("Airtime Topup (" + phone + ")", "-" + amount.toLocaleString(), "negative");
+                            alert("₦" + amount.toLocaleString() + " airtime successfully sent to " + phone);
+                        } else {
+                            alert("Insufficient funds! Your balance is too low for this transaction amount.");
+                        }
+                    } else {
+                        alert("Minimum airtime purchase is ₦50.");
+                    }
+                } else {
+                    alert("Invalid phone number provided.");
+                }
+            } else {
+                alert("Invalid network selection.");
+            }
+        }
+
+        function checkBalanceAndAlert(serviceType) {
+            if (currentBalance <= 0) {
+                alert("Insufficient funds! Your wallet balance is ₦0.00. Please fund your account to access this service.");
+                return;
+            }
+            if (serviceType === 'electricity') {
+                alert("Opening Electricity Token Vending Portal...");
+            } else if (serviceType === 'cable') {
+                alert("Opening Cable TV Subscription Portal...");
+            }
+        }
+
+        function copyReferralLink() {
+            let username = document.getElementById("displayName").innerText.toLowerCase().replace(/\s+/g, '');
+            let refLink = window.location.origin + window.location.pathname + "?ref=" + username;
+            
+            navigator.clipboard.writeText(refLink).then(() => {
+                alert("Referral link copied successfully!\n\nLink: " + refLink + "\n\nShare it with your friends to earn ₦200 bonuses!");
+            }).catch(err => {
+                prompt("Copy your referral link below:", refLink);
+            });
+        }
+
+        function addTransaction(title, amount, type) {
+            let txList = document.getElementById("txList");
+            let item = document.createElement("div");
+            item.className = "tx-item";
+            let dateStr = getCurrentFormattedDate();
+            item.innerHTML = `
+                <div class="tx-info">
+                    <strong>${title}</strong>
+                    <p>${dateStr}</p>
+                </div>
+                <span class="tx-amount ${type}">${amount}</span>
+            `;
+            txList.prepend(item);
+        }
+
+        function openSettings() {
+            document.getElementById("settingsModal").style.display = "block";
+        }
+
+        function closeSettings() {
+            document.getElementById("settingsModal").style.display = "none";
+        }
+
+        function updateProfileName() {
+            let newName = prompt("Enter new brand name:");
+            if(newName && newName.trim() !== "") {
+                document.getElementById("displayName").innerText = newName.trim();
+                alert("Brand name updated successfully!");
+            }
+        }
+    </script>
+</body>
+</html>
